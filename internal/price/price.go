@@ -3,13 +3,14 @@ package price
 import "sync"
 
 type Tracker struct {
-	mu     sync.Mutex
+	mu     *sync.Mutex
 	prices map[string]float64
 }
 
 func NewPriceTracker() *Tracker {
 	return &Tracker{
 		prices: make(map[string]float64),
+		mu:     &sync.Mutex{},
 	}
 }
 

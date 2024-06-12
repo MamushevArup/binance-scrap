@@ -50,7 +50,7 @@ func (t *Tracker) Run(cfg *config.Crypto, ctx context.Context, cancel context.Ca
 
 	for i := 0; i < cfg.MaxWorkers; i++ {
 		wg.Add(1)
-		go worker(ctx, wg, tasks, results, done)
+		go t.worker(ctx, wg, tasks, results, done)
 	}
 
 	wg.Add(1)
@@ -69,7 +69,6 @@ func (t *Tracker) Run(cfg *config.Crypto, ctx context.Context, cancel context.Ca
 					close(tasks)
 					return
 				case tasks <- Task{URL: fmt.Sprintf("%s%s?symbol=%s", cfg.BinanceUrl, apiUrl, symbol)}:
-					t.counter.IncrementRequests()
 				}
 			}
 			time.Sleep(1 * time.Second) // Delay to prevent hammering the API
@@ -138,7 +137,7 @@ func fetch(url string) (string, float64, error) {
 	return result.Symbol, result.Price, nil
 }
 
-func worker(ctx context.Context, wg *sync.WaitGroup, tasks <-chan Task, results chan<- Result, done <-chan struct{}) {
+func (t *Tracker) worker(ctx context.Context, wg *sync.WaitGroup, tasks <-chan Task, results chan<- Result, done <-chan struct{}) {
 	defer wg.Done()
 	for {
 		select {
@@ -151,6 +150,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, tasks <-chan Task, results 
 				return
 			}
 			symbol, currPrice, err := fetch(task.URL)
+			t.counter.IncrementRequests()
 			results <- Result{Symbol: symbol, Price: currPrice, Error: err}
 		}
 	}
